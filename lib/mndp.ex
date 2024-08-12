@@ -28,9 +28,9 @@ defmodule MNDP do
     struct(__MODULE__, packet)
   end
 
-  def parse(<<>>, acc), do: Enum.reverse(acc)
+  defp parse(<<>>, acc), do: Enum.reverse(acc)
 
-  def parse(<<type::16, length::16, data::binary>>, acc) do
+  defp parse(<<type::16, length::16, data::binary>>, acc) do
     case data do
       <<data::bytes-size(length), rest::binary>> ->
         parse(rest, [{type, length, data} | acc])
@@ -40,22 +40,22 @@ defmodule MNDP do
     end
   end
 
-  def map({1, _length, data}), do: {:mac, data}
-  def map({5, _length, data}), do: {:identitiy, data}
-  def map({7, _length, data}), do: {:version, data}
-  def map({8, _length, data}), do: {:platform, data}
+  defp map({1, _length, data}), do: {:mac, data}
+  defp map({5, _length, data}), do: {:identitiy, data}
+  defp map({7, _length, data}), do: {:version, data}
+  defp map({8, _length, data}), do: {:platform, data}
 
-  def map({10, length, data}) do
+  defp map({10, length, data}) do
     <<seconds::integer-little-size(length)-unit(8)>> = data
     {:uptime, seconds}
   end
 
-  def map({11, _length, data}), do: {:software_id, data}
-  def map({12, _length, data}), do: {:board, data}
-  def map({14, _length, data}), do: {:unpack, data}
-  def map({15, _length, data}), do: {:ip_v6, data}
-  def map({16, _length, data}), do: {:interface, data}
-  def map({17, _length, data}), do: {:ip_v4, data}
-  def map({:seq_no, data}), do: {:seq_no, data}
-  def map({:header, data}), do: {:header, data}
+  defp map({11, _length, data}), do: {:software_id, data}
+  defp map({12, _length, data}), do: {:board, data}
+  defp map({14, _length, data}), do: {:unpack, data}
+  defp map({15, _length, data}), do: {:ip_v6, data}
+  defp map({16, _length, data}), do: {:interface, data}
+  defp map({17, _length, data}), do: {:ip_v4, data}
+  defp map({:seq_no, data}), do: {:seq_no, data}
+  defp map({:header, data}), do: {:header, data}
 end
