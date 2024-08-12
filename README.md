@@ -1,6 +1,6 @@
-# MNDP - Mikrotik Neighbor Discovery Protocol
+# MNDP - MikroTik Neighbor Discovery Protocol
 
-An Elixir implementation for the [Mikrotik Neighbor Discovery Protocol](https://help.mikrotik.com/docs/display/ROS/Neighbor+discovery).
+An Elixir implementation for the [MikroTik Neighbor Discovery Protocol](https://help.mikrotik.com/docs/display/ROS/Neighbor+discovery).
 
 Currently it is possible to decode and encode from/to a binary packet.
 
@@ -45,6 +45,17 @@ MNDP.from_binary!(binary)
   ip_v4: {192, 168, 88, 1}
 }
 ```
+
+## Todo / Ideas
+
+- [ ] API to create MNDP struct from scratch with custom data
+- [ ] Create MNDP struct from system and interface
+- [ ] Better handling for `header` and `seq_no` fields
+- [ ] Better error handling
+- [ ] Test custom packets with [WinBox](https://help.mikrotik.com/docs/display/ROS/WinBox)
+- [ ] Listener to discover devices
+- [ ] Sender to broadcast discovery packet
+- [ ] Inspect protocol to mace things like MAC address and IP adresses more readable
 
 
 ## Installation
