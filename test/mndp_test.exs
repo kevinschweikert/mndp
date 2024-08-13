@@ -12,28 +12,31 @@ defmodule MNDPTest do
             47, 101, 116, 104, 101, 114, 50, 0, 17, 0, 4, 192, 168, 88, 1>>
 
   test "from_binary/1" do
-    assert %MNDP{
-             header: <<0x61, 0x0>>,
-             seq_no: 0,
-             mac: [0x74, 0x4D, 0x28, 0x91, 0x0D, 0x2F],
-             identity: "MikroTik",
-             version: "7.15.3 (stable) 2024-07-24 10:39:01",
-             platform: "MikroTik",
-             uptime: 5596,
-             software_id: "H792-MXJ3",
-             board: "RBD52G-5HacD2HnD",
-             unpack: :none,
-             ip_v6: {0xFE80, 0x0, 0x0, 0x0, 0x764D, 0x28FF, 0xFE91, 0xD2F},
-             interface: "bridge/ether2",
-             ip_v4: {192, 168, 88, 1}
-           } ==
-             MNDP.from_binary!(@packet)
+    assert {:ok,
+            %MNDP{
+              type: 97,
+              ttl: 0,
+              seq_no: 0,
+              mac: [0x74, 0x4D, 0x28, 0x91, 0x0D, 0x2F],
+              identity: "MikroTik",
+              version: "7.15.3 (stable) 2024-07-24 10:39:01",
+              platform: "MikroTik",
+              uptime: 5596,
+              software_id: "H792-MXJ3",
+              board: "RBD52G-5HacD2HnD",
+              unpack: :none,
+              ip_v6: {0xFE80, 0x0, 0x0, 0x0, 0x764D, 0x28FF, 0xFE91, 0xD2F},
+              interface: "bridge/ether2",
+              ip_v4: {192, 168, 88, 1}
+            }} ==
+             MNDP.from_binary(@packet)
   end
 
   test "to_binary/1" do
     assert @packet ==
              %MNDP{
-               header: <<0x61, 0x0>>,
+               type: 97,
+               ttl: 0,
                seq_no: 0,
                mac: [0x74, 0x4D, 0x28, 0x91, 0x0D, 0x2F],
                identity: "MikroTik",
@@ -51,13 +54,15 @@ defmodule MNDPTest do
   end
 
   test "roundtrip from binary" do
-    assert @packet == MNDP.from_binary!(@packet) |> MNDP.to_binary()
+    assert @packet ==
+             MNDP.from_binary(@packet) |> then(fn {:ok, mndp} -> mndp end) |> MNDP.to_binary()
   end
 
   test "roundtrip to binary" do
-    mndp =
+    {:ok, mndp} =
       %MNDP{
-        header: <<0x61, 0x0>>,
+        type: 97,
+        ttl: 0,
         seq_no: 0,
         mac: [0x74, 0x4D, 0x28, 0x91, 0x0D, 0x2F],
         identity: "MikroTik",
@@ -72,7 +77,7 @@ defmodule MNDPTest do
         ip_v4: {192, 168, 88, 1}
       }
       |> MNDP.to_binary()
-      |> MNDP.from_binary!()
+      |> MNDP.from_binary()
 
     assert mndp.platform == "MikroTik"
     assert mndp.ip_v4 == {192, 168, 88, 1}

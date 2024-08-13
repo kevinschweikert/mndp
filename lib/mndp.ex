@@ -4,7 +4,8 @@ defmodule MNDP do
   """
 
   @type t() :: %__MODULE__{
-          header: binary(),
+          type: integer(),
+          ttl: integer(),
           seq_no: non_neg_integer(),
           mac: [0..255],
           identity: String.t(),
@@ -16,11 +17,13 @@ defmodule MNDP do
           unpack: :none | nil,
           ip_v6: :inet.ip6_address(),
           interface: String.t(),
-          ip_v4: :inet.ip4_address()
+          ip_v4: :inet.ip4_address(),
+          received_at: DateTime.t()
         }
 
   defstruct [
-    :header,
+    :type,
+    :ttl,
     :seq_no,
     :mac,
     :identity,
@@ -33,7 +36,7 @@ defmodule MNDP do
     :ip_v6,
     :interface,
     :ip_v4,
-    :age
+    :received_at
   ]
 
   defmodule Tlv do
@@ -45,15 +48,22 @@ defmodule MNDP do
     defstruct [:type, :length, :data]
   end
 
-  @spec from_binary!(binary()) :: t()
-  def from_binary!(<<header::binary-size(2), seq_no::16, data::binary>>) do
-    packet =
-      parse(data, [{:header, header}, {:seq_no, seq_no}])
-      |> List.flatten()
-      |> Enum.map(&decode/1)
+  @spec from_binary(binary()) :: {:ok, t()} | {:error, atom()}
+  def from_binary(<<0, 0, 0, 0>>), do: {:error, :discovery_trigger_packet}
 
-    struct(__MODULE__, packet)
+  def from_binary(<<type::8, ttl::8, seq_no::16, data::binary>>) do
+    meta = [type: type, ttl: ttl, seq_no: seq_no]
+
+    case parse(data, []) do
+      {:ok, data} ->
+        {:ok, struct(__MODULE__, Keyword.merge(meta, data))}
+
+      error ->
+        error
+    end
   end
+
+  def from_binary(_), do: {:error, :unknown_header}
 
   @spec to_binary(t()) :: binary()
   def to_binary(%__MODULE__{} = mndp) do
@@ -63,22 +73,20 @@ defmodule MNDP do
       |> Enum.map(&encode/1)
       |> Enum.reject(&is_nil/1)
       |> Enum.sort_by(fn {type, _, _} -> type end, :asc)
-      |> Enum.reduce(<<>>, fn field, acc ->
-        acc <> to_tlv(field)
-      end)
+      |> Enum.reduce(<<>>, fn field, acc -> acc <> to_tlv(field) end)
 
-    <<mndp.header::binary, mndp.seq_no::16>> <> tlv
+    <<mndp.type::8, mndp.ttl::8, mndp.seq_no::16>> <> tlv
   end
 
-  defp parse(<<>>, acc), do: Enum.reverse(acc)
+  defp parse(<<>>, acc), do: {:ok, acc}
 
-  defp parse(<<type::16, length::16, data::binary>> = packet, acc) do
+  defp parse(<<type::16, length::16, data::binary>>, acc) do
     case data do
       <<data::bytes-size(length), rest::binary>> ->
-        parse(rest, [{type, length, data} | acc])
+        parse(rest, [decode({type, length, data}) | acc])
 
       _ ->
-        raise "No Tlv packet found in #{inspect(packet)}"
+        {:error, :tlv_wrong_format}
     end
   end
 
@@ -88,7 +96,7 @@ defmodule MNDP do
   defp decode({8, _length, data}), do: {:platform, data}
 
   defp decode({10, length, data}) do
-    <<seconds::integer-little-size(length)-unit(8)>> = data
+    <<seconds::unsigned-integer-little-size(length)-unit(8)>> = data
     {:uptime, seconds}
   end
 
@@ -98,8 +106,6 @@ defmodule MNDP do
   defp decode({15, _length, data}), do: {:ip_v6, parse_ipv6(data)}
   defp decode({16, _length, data}), do: {:interface, data}
   defp decode({17, _length, data}), do: {:ip_v4, parse_ipv4(data)}
-  defp decode({:seq_no, data}), do: {:seq_no, data}
-  defp decode({:header, data}), do: {:header, data}
 
   defp parse_unpack(<<1>>), do: :none
   defp parse_unpack(_), do: nil
