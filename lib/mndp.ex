@@ -17,14 +17,10 @@ defmodule MNDP do
           unpack: :none | nil,
           ip_v6: :inet.ip6_address(),
           interface: String.t(),
-          ip_v4: :inet.ip4_address(),
-          received_at: DateTime.t()
+          ip_v4: :inet.ip4_address()
         }
 
   defstruct [
-    :type,
-    :ttl,
-    :seq_no,
     :mac,
     :identity,
     :version,
@@ -32,20 +28,66 @@ defmodule MNDP do
     :uptime,
     :software_id,
     :board,
-    :unpack,
-    :ip_v6,
     :interface,
     :ip_v4,
-    :received_at
+    ip_v6: nil,
+    unpack: :none,
+    type: 0,
+    ttl: 0,
+    seq_no: 0
   ]
 
-  defmodule Tlv do
-    @type t() :: %__MODULE__{
-            type: non_neg_integer(),
-            length: non_neg_integer(),
-            data: binary()
-          }
-    defstruct [:type, :length, :data]
+  @spec new(String.t(), Keyword.t()) :: {:ok, t()} | {:error, atom()}
+  def new(interface, opts \\ []) do
+    with {:ok, if_opts} <- get_interface(interface),
+         {:ok, ip_v4} <- get_ipv4(if_opts) do
+      mac = if_opts[:hwaddr]
+      {:ok, identity} = :inet.gethostname()
+      version = Application.spec(:mndp, :vsn)
+      uptime = :erlang.statistics(:wall_clock) |> elem(0) |> div(1000)
+
+      software_id =
+        case Application.spec(:mndp, :id) do
+          [] -> "mndp"
+          [val | _] -> val
+        end
+
+      board = :erlang.system_info(:system_architecture)
+
+      {:ok,
+       %__MODULE__{
+         mac: mac,
+         identity: opts[:identity] || to_string(identity),
+         version: opts[:version] || to_string(version),
+         platform: opts[:platform] || "Elixir",
+         uptime: opts[:uptime] || uptime,
+         software_id: opts[:version] || software_id,
+         board: opts[:board] || to_string(board),
+         interface: interface,
+         ip_v4: ip_v4
+       }}
+    end
+  end
+
+  defp get_interface(interface) do
+    with {:ok, interfaces} <- :inet.getifaddrs(),
+         {_, if_opts} <-
+           Enum.find(interfaces, fn {name, _} -> name == String.to_charlist(interface) end),
+         true <- :broadcast in if_opts[:flags] do
+      {:ok, if_opts}
+    else
+      false -> {:error, :no_broadcast}
+      _ -> {:error, :interface_not_found}
+    end
+  end
+
+  defp get_ipv4(if_opts) do
+    with ip_v4s = Keyword.filter(if_opts, fn {_, value} -> :inet.is_ipv4_address(value) end),
+         {:ok, ip_v4} <- Keyword.fetch(ip_v4s, :addr) do
+      {:ok, ip_v4}
+    else
+      _ -> {:error, :ip_v4_not_found}
+    end
   end
 
   @spec from_binary(binary()) :: {:ok, t()} | {:error, atom()}
@@ -119,6 +161,7 @@ defmodule MNDP do
   defp encode({:mac, [m1, m2, m3, m4, m5, m6]}),
     do: {1, 6, <<m1::8, m2::8, m3::8, m4::8, m5::8, m6::8>>}
 
+  defp encode({_, nil}), do: nil
   defp encode({:identity, data}), do: {5, byte_size(data), data}
   defp encode({:version, data}), do: {7, byte_size(data), data}
   defp encode({:platform, data}), do: {8, byte_size(data), data}
