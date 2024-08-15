@@ -8,7 +8,8 @@ defmodule MNDP.Server do
       interfaces: interfaces,
       callback: callback,
       port: port,
-      socket: nil
+      socket: nil,
+      discovered: MapSet.new()
     })
   end
 
@@ -46,11 +47,19 @@ defmodule MNDP.Server do
   @impl GenServer
   def handle_info({:udp, _socket, _addr, _port, data}, state) do
     case MNDP.from_binary(data) do
-      {:ok, mndp} -> state.callback.(mndp)
-      _ -> nil
-    end
+      {:ok, mndp} ->
+        # TODO: better uniqueness filter than string representation. Maybe seperate Device struct without header and uptime info
+        unless MapSet.member?(state.discovered, to_string(mndp)) do
+          discovered = MapSet.put(state.discovered, to_string(mndp))
+          state.callback.(mndp)
+          {:noreply, %{state | discovered: discovered}}
+        else
+          {:noreply, state}
+        end
 
-    {:noreply, state}
+      _ ->
+        {:noreply, state}
+    end
   end
 
   @impl GenServer

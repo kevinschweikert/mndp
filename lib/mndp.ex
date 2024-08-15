@@ -37,6 +37,20 @@ defmodule MNDP do
     seq_no: 0
   ]
 
+  defimpl String.Chars, for: __MODULE__ do
+    def to_string(mndp) do
+      "Device #{mndp.identity}, MAC #{print_mac(mndp.mac)}, IP #{print_ip(mndp.ip_v4)}"
+    end
+
+    defp print_mac(mac) do
+      mac |> Enum.map_join(":", &Integer.to_string(&1, 16))
+    end
+
+    defp print_ip(ip) do
+      ip |> Tuple.to_list() |> Enum.map_join(".", &Integer.to_string(&1))
+    end
+  end
+
   @spec new(String.t(), Keyword.t()) :: {:ok, t()} | {:error, atom()}
   def new(interface, opts \\ []) do
     with {:ok, if_opts} <- get_interface(interface),
