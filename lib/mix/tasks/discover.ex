@@ -5,8 +5,9 @@ defmodule Mix.Tasks.Discover do
   use Mix.Task
 
   @impl Mix.Task
-  def run(_args) do
-    MNDP.Server.start_link([], &print_discovered/1)
+  def run(args) do
+    [ifname | _] = args
+    MNDP.Server.start_link(ifname, &print_discovered/1)
     Process.sleep(:infinity)
   end
 

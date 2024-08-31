@@ -2,10 +2,13 @@ defmodule MNDP.Server do
   use GenServer
 
   @discovery_trigger <<0, 0, 0, 0>>
+  @nerves? Mix.target() != :host
 
-  def start_link(interfaces, callback, port \\ 5678) when is_function(callback) do
+  require Logger
+
+  def start_link(interface, callback, port \\ 5678) when is_function(callback) do
     GenServer.start_link(__MODULE__, %{
-      interfaces: interfaces,
+      interface: interface,
       callback: callback,
       port: port,
       socket: nil,
@@ -14,21 +17,41 @@ defmodule MNDP.Server do
   end
 
   @impl GenServer
-  def init(args) do
-    {:ok, args, {:continue, []}}
+  def init(state) do
+    socket_opts = [
+      :binary,
+      {:broadcast, true},
+      {:active, true}
+    ]
+
+    socket_opts =
+      if @nerves? do
+        socket_opts ++ [bind_to_device: state.interface]
+      else
+        socket_opts ++ [ip: {0, 0, 0, 0}]
+      end
+
+    case :gen_udp.open(state.port, socket_opts) do
+      {:ok, socket} ->
+        {:ok, %{state | socket: socket}, {:continue, []}}
+
+      {:error, :einval} ->
+        Logger.error(
+          "MDNP can't open port #{state.port} on #{state.interface}. Check permissions"
+        )
+
+        {:stop, :check_port_and_ifnames}
+
+      {:error, other} ->
+        {:stop, other}
+    end
   end
 
   @impl GenServer
   def handle_continue(_, state) do
     Process.send(self(), :broadcast, [])
-
-    with {:ok, socket} <-
-           :gen_udp.open(state.port, [:binary, ip: {0, 0, 0, 0}, active: true, broadcast: true]),
-         :ok <- send_packet(@discovery_trigger, socket, state.port) do
-      {:noreply, %{state | socket: socket}}
-    else
-      _ -> {:stop, :init, state}
-    end
+    send_packet(@discovery_trigger, state.socket, state.port)
+    {:noreply, state}
   end
 
   @impl GenServer
@@ -68,11 +91,16 @@ defmodule MNDP.Server do
   end
 
   defp broadcast_discovery(state) do
-    for interface <- state.interfaces do
-      case MNDP.new(interface) do
-        {:ok, mndp} -> MNDP.to_binary(mndp) |> send_packet(state.socket, state.port)
-        _ -> nil
-      end
+    Logger.debug("MNDP Sending discovery packet on #{state.interface}")
+
+    case MNDP.new(state.interface) do
+      %MNDP{} = mndp ->
+        mndp
+        |> MNDP.to_binary()
+        |> send_packet(state.socket, state.port)
+
+      _ ->
+        nil
     end
   end
 
