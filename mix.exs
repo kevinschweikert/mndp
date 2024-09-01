@@ -55,14 +55,15 @@ defmodule Mndp.MixProject do
       {:nerves_runtime, "~> 0.13", optional: true, only: [:dev, :test, :prod, :docs]},
       {:credo, "~> 1.7", only: :test, runtime: false},
       {:ex_doc, "~> 0.34", only: :docs, runtime: false},
-      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:vintage_net, "~> 0.7", optional: true}
     ]
   end
 
   defp dialyzer() do
     [
       flags: [:missing_return, :extra_return, :unmatched_returns, :error_handling, :underspecs],
-      plt_add_apps: [:iex, :nerves_runtime, :inets]
+      plt_add_apps: [:iex, :vintage_net, :inets]
     ]
   end
 
