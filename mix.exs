@@ -27,7 +27,14 @@ defmodule Mndp.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger, {:inets, :optional}]
+      mod: {MNDP.Application, []},
+      extra_applications: [
+        :logger,
+        {:inets, :optional},
+        {:wx, :optional},
+        {:runtime_tools, :optional},
+        {:observer, :optional}
+      ]
     ]
   end
 
@@ -36,8 +43,8 @@ defmodule Mndp.MixProject do
       files: [
         "lib",
         "mix.exs",
-        "README.md"
-        # "LICENSE"
+        "README.md",
+        "LICENSE"
         # "CHANGELOG.md"
       ],
       licenses: ["MIT"],
@@ -56,7 +63,7 @@ defmodule Mndp.MixProject do
       {:credo, "~> 1.7", only: :test, runtime: false},
       {:ex_doc, "~> 0.34", only: :docs, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:vintage_net, "~> 0.7", optional: true}
+      {:vintage_net, "~> 0.7", optional: true, runtime: false}
     ]
   end
 

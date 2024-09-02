@@ -7,11 +7,9 @@ defmodule Mix.Tasks.Discover do
   @impl Mix.Task
   def run(args) do
     [ifname | _] = args
-    MNDP.Server.start_link(ifname, &print_discovered/1)
+    config = MNDP.Options.new()
+    Registry.start_link(keys: :unique, name: MNDP.Registry, meta: [config: config])
+    MNDP.Server.start_link(ifname)
     Process.sleep(:infinity)
-  end
-
-  defp print_discovered(mndp) do
-    Mix.shell().info("#{mndp}")
   end
 end

@@ -41,9 +41,9 @@ defmodule MNDP.InetMonitor do
   end
 
   defp get_all_ifnames() do
-    case :inet.getifaddrs() do
+    case :net.getifaddrs(:inet) do
       {:ok, ifaddrs} ->
-        Enum.map(ifaddrs, fn {ifname, _} -> to_string(ifname) end)
+        Enum.map(ifaddrs, fn ifaddr -> to_string(ifaddr.name) end)
 
       _error ->
         []

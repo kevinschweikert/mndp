@@ -1,4 +1,4 @@
-defmodule MDNP.Application do
+defmodule MNDP.Application do
   @moduledoc false
 
   use Application
@@ -8,9 +8,9 @@ defmodule MDNP.Application do
     config = Application.get_all_env(:mndp) |> MNDP.Options.new()
 
     children = [
-      {Registry, keys: :unique, name: MNDP.Registry},
+      {Registry, keys: :unique, name: MNDP.Registry, meta: [config: config]},
       {MNDP.Manager, []},
-      {config.if_monitor, excluded_ifnames: config.excluded_ifnames, ipv4_only: config.ipv4_only}
+      {config.if_monitor, excluded_ifnames: config.excluded_ifnames}
     ]
 
     opts = [strategy: :rest_for_one, name: MNDP.Supervisor]
