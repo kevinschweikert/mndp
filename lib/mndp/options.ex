@@ -21,7 +21,7 @@ defmodule MNDP.Options do
   * `:ttl` - The default MNDP record time-to-live for discovered devices. The default of 60
     seconds is probably fine for most use. 
   * `:excluded_ifnames` - A list of network interfaces names to ignore. By
-    default, `MDNP` will ignore loopback and cellular network interfaces.
+    default, `MNDP` will ignore loopback and cellular network interfaces.
   * `:if_monitor` - Set to `MNDP.VintageNetMonitor` when using Nerves or
     `MNDP.InetMonitor` elsewhere.  The default is `MNDP.VintageNetMonitor`.
 
@@ -77,7 +77,7 @@ defmodule MNDP.Options do
   end
 
   defp default_if_monitor() do
-    if has_vintage_net?() and is_linux?() do
+    if has_vintage_net?() do
       MNDP.VintageNetMonitor
     else
       MNDP.InetMonitor
@@ -88,8 +88,6 @@ defmodule MNDP.Options do
     Application.loaded_applications()
     |> Enum.find_value(fn {app, _, _} -> app == :vintage_net end)
   end
-
-  def is_linux?, do: :os.type() == {:unix, :linux}
 
   defp get_identity(opts) do
     Map.get(opts, :identity, @default_identity) |> resolve_identity()

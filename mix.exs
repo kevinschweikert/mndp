@@ -24,29 +24,25 @@ defmodule Mndp.MixProject do
     ]
   end
 
+  defp extra_applications(:dev),
+    do: [
+      {:wx, :optional},
+      {:runtime_tools, :optional},
+      {:observer, :optional}
+    ]
+
+  defp extra_applications(_), do: []
+
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
       mod: {MNDP.Application, []},
-      extra_applications: [
-        :logger,
-        {:inets, :optional},
-        {:wx, :optional},
-        {:runtime_tools, :optional},
-        {:observer, :optional}
-      ]
+      extra_applications: [:logger] ++ extra_applications(Mix.env())
     ]
   end
 
   defp package do
     [
-      files: [
-        "lib",
-        "mix.exs",
-        "README.md",
-        "LICENSE"
-        # "CHANGELOG.md"
-      ],
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url}
     ]
@@ -63,7 +59,7 @@ defmodule Mndp.MixProject do
       {:credo, "~> 1.7", only: :test, runtime: false},
       {:ex_doc, "~> 0.34", only: :docs, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:vintage_net, "~> 0.7", optional: true, runtime: false}
+      {:vintage_net, "~> 0.13", optional: true}
     ]
   end
 
@@ -78,10 +74,10 @@ defmodule Mndp.MixProject do
     [
       # "CHANGELOG.md"],
       extras: ["README.md"],
-      main: "readme"
-      # Don't include source refs since lines numbers don't match up to files
-      # source_ref: "v#{@version}",
-      # source_url: @source_url
+      main: "readme",
+      source_ref: "v#{@version}",
+      source_url: @source_url,
+      skip_undefined_reference_warnings_on: ["CHANGELOG.md"]
     ]
   end
 end

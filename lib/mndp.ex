@@ -19,7 +19,8 @@ defmodule MNDP do
           unpack: :none | nil,
           interface: String.t(),
           ip_v4: :inet.ip4_address(),
-          ip_v6: :inet.ip6_address()
+          ip_v6: :inet.ip6_address(),
+          last_seen: DateTime.t()
         }
 
   @type opts() :: [
@@ -45,24 +46,17 @@ defmodule MNDP do
     unpack: :none,
     type: 0,
     ttl: 0,
-    seq_no: 0
+    seq_no: 0,
+    last_seen: nil
   ]
 
   defdelegate decode(binary), to: MNDP.Packet
   defdelegate encode(mndp), to: MNDP.Packet
 
-  defimpl String.Chars, for: __MODULE__ do
-    def to_string(mndp) do
-      "Device #{mndp.identity}, MAC #{print_mac(mndp.mac)}, IP #{print_ip(mndp.ip_v4)}"
-    end
-
-    defp print_mac(mac) do
-      mac |> Enum.map_join(":", &Integer.to_string(&1, 16))
-    end
-
-    defp print_ip(ip) do
-      :inet.ntoa(ip)
-    end
+  @spec new!(String.t(), opts()) :: t() | {:error, atom()}
+  def new!(ifname, opts) when is_binary(ifname) do
+    {:ok, interface} = Interface.from_ifname(ifname)
+    new(interface, opts)
   end
 
   @spec new(Interface.t() | String.t(), opts()) :: t() | {:error, atom()}
@@ -115,4 +109,37 @@ defmodule MNDP do
       "#{sysname} #{release} #{version}"
     end
   end
+
+  @spec seen_now(t()) :: t()
+  def seen_now(%__MODULE__{} = mndp) do
+    %MNDP{mndp | last_seen: DateTime.utc_now()}
+  end
+
+  @spec registered(:inet.ip4_address()) :: [pid()]
+  def registered(ip) do
+    if not is_nil(Process.whereis(MNDP.Registry)) do
+      Registry.select(MNDP.Registry, [{{{:_, ip}, :"$2", :_}, [], [:"$2"]}])
+    else
+      []
+    end
+  end
+
+  def print_discovered do
+    header = ["IDENTITY\tMAC\t\t\tIPV4\t\tINTERFACE\tUPTIME"]
+
+    mndp =
+      MNDP.Listener.list_discovered()
+      |> Enum.map(fn mndp ->
+        "#{mndp.identity}\t#{print_mac(mndp.mac)}\t#{print_ip(mndp.ip_v4)}\t#{mndp.interface}\t\t#{mndp.uptime}"
+      end)
+
+    (header ++ mndp) |> Enum.join("\n") |> IO.puts()
+  end
+
+  defp print_mac(mac) do
+    mac |> Enum.map_join(":", &Integer.to_string(&1, 16))
+  end
+
+  defp print_ip(nil), do: "UNKNOWN"
+  defp print_ip(ip), do: :inet.ntoa(ip)
 end

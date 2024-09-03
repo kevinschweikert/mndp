@@ -7,11 +7,11 @@ defmodule MNDP.VintageNetMonitor do
   """
   use GenServer
 
-  alias MNDP.Monitor
+  alias MNDP.CoreMonitor
 
   @addresses_topic ["interface", :_, "addresses"]
 
-  @spec start_link([Monitor.option()]) :: GenServer.on_start()
+  @spec start_link([CoreMonitor.option()]) :: GenServer.on_start()
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
@@ -26,7 +26,7 @@ defmodule MNDP.VintageNetMonitor do
 
     VintageNet.subscribe(@addresses_topic)
 
-    {:ok, Monitor.init(opts), {:continue, :initialization}}
+    {:ok, CoreMonitor.init(opts), {:continue, :initialization}}
   end
 
   @impl GenServer
@@ -34,13 +34,17 @@ defmodule MNDP.VintageNetMonitor do
     new_state =
       VintageNet.match(@addresses_topic)
       |> Enum.reduce(state, &set_vn_address_reducer/2)
+      |> CoreMonitor.flush_todo_list()
 
     {:noreply, new_state}
   end
 
   @impl GenServer
   def handle_info({VintageNet, ["interface", ifname, "addresses"], _old, new, _}, state) do
-    new_state = state |> set_vn_address(ifname, new)
+    new_state =
+      state
+      |> set_vn_address(ifname, new)
+      |> CoreMonitor.flush_todo_list()
 
     {:noreply, new_state}
   end
@@ -51,10 +55,11 @@ defmodule MNDP.VintageNetMonitor do
 
   defp set_vn_address(state, ifname, nil) do
     # nil gets passed when the network interface goes away.
-    Monitor.remove_interface(state, ifname)
+    set_vn_address(state, ifname, [])
   end
 
-  defp set_vn_address(state, ifname, _addresses) do
-    Monitor.add_interface(state, ifname)
+  defp set_vn_address(state, ifname, addresses) do
+    ip_list = Enum.map(addresses, fn %{address: ip} -> ip end)
+    CoreMonitor.set_ip_list(state, ifname, ip_list)
   end
 end

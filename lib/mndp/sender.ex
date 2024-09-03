@@ -1,31 +1,31 @@
-defmodule MNDP.Server do
+defmodule MNDP.Sender do
   use GenServer
-
-  @discovery_request <<0, 0, 0, 0>>
 
   require Logger
 
-  def start_link(ifname) do
+  @discovery_request <<00, 00, 00, 00>>
+
+  def start_link({ifname, address}) do
     {:ok, config} = Registry.meta(MNDP.Registry, :config)
-    {:ok, interface} = MNDP.Interface.from_ifname(ifname)
 
     GenServer.start_link(
       __MODULE__,
       %{
         ifname: ifname,
-        addr: interface.ip_v4,
+        addr: address,
         port: config.port,
         identity: config.identity,
         interval: config.interval,
         socket: nil
       },
-      name: via_tuple(ifname)
+      name: via_tuple({ifname, address})
     )
   end
 
-  @spec stop_server(String.t()) :: :ok
-  def stop_server(ifname) do
-    GenServer.stop(via_tuple(ifname))
+  @spec stop_server(String.t(), :inet.ip4_address()) :: :ok
+  def stop_server(ifname, address) do
+    Logger.debug("MNDP stopping server for #{ifname}")
+    GenServer.stop(via_tuple({ifname, address}))
   catch
     :exit, {:noproc, _} ->
       # Ignore if the server already stopped. It already exited due to the
@@ -35,7 +35,14 @@ defmodule MNDP.Server do
 
   @impl GenServer
   def init(state) do
-    socket_opts = [:binary, broadcast: true, active: true, reuseaddr: true, ip: state.addr]
+    socket_opts = [
+      :binary,
+      broadcast: true,
+      active: true,
+      ip: state.addr,
+      reuseaddr: true,
+      reuseport: true
+    ]
 
     socket_opts =
       case :os.type() do
@@ -56,13 +63,13 @@ defmodule MNDP.Server do
         {:ok, %{state | socket: socket}, {:continue, :discovery_request}}
 
       {:error, :einval} ->
-        Logger.error("MDNP can't open port #{state.port} on #{state.ifname}. Check permissions")
+        Logger.error("MNDP can't open port #{state.port} on #{state.ifname}. Check permissions")
 
         {:stop, :check_port_and_ifnames}
 
       {:error, other} ->
         Logger.error(
-          "MDNP can't open socket with port #{state.port} on #{state.ifname}. Error: #{other}"
+          "MNDP can't open socket with port #{state.port} on #{state.ifname}. Error: #{other}"
         )
 
         {:stop, other}
@@ -84,28 +91,8 @@ defmodule MNDP.Server do
   end
 
   @impl GenServer
-  def handle_info({:udp, _socket, addr, _port, @discovery_request}, state) do
-    if addr != state.addr do
-      broadcast_discovery(state)
-    end
-
-    {:noreply, state}
-  end
-
-  @impl GenServer
   def handle_info({:udp, _socket, addr, _port, data}, state) do
-    if addr != state.addr do
-      case MNDP.Packet.decode(data) do
-        {:ok, mndp} ->
-          if not is_self?(mndp, state) do
-            # TODO:
-          end
-
-        _ ->
-          nil
-      end
-    end
-
+    Logger.debug("MNDP unexpected message from #{inspect(addr)}: #{data}")
     {:noreply, state}
   end
 
@@ -128,15 +115,11 @@ defmodule MNDP.Server do
     end
   end
 
-  defp is_self?(%MNDP{} = mndp, state) do
-    mndp.identity == state.identity
-  end
-
   defp send_packet(payload, state) do
     :gen_udp.send(state.socket, {255, 255, 255, 255}, state.port, payload)
   end
 
-  defp via_tuple(ifname) do
-    {:via, Registry, {MNDP.Registry, ifname}}
+  defp via_tuple(name) do
+    {:via, Registry, {MNDP.Registry, name}}
   end
 end

@@ -5,11 +5,11 @@ defmodule Mix.Tasks.Discover do
   use Mix.Task
 
   @impl Mix.Task
-  def run(args) do
-    [ifname | _] = args
-    config = MNDP.Options.new()
-    Registry.start_link(keys: :unique, name: MNDP.Registry, meta: [config: config])
-    MNDP.Server.start_link(ifname)
-    Process.sleep(:infinity)
+  def run(_args) do
+    Logger.configure(level: :info)
+    IO.puts("Searching for devices...")
+    MNDP.Listener.start_link([])
+    Process.sleep(:timer.seconds(15))
+    MNDP.print_discovered()
   end
 end
