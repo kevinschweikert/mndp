@@ -1,28 +1,83 @@
 defmodule Mndp.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+  @source_url "https://github.com/kevinschweikert/mndp"
+
   def project do
     [
       app: :mndp,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      dialyzer: dialyzer(),
+      docs: docs(),
+      package: package(),
+      description: description(),
+      preferred_cli_env: %{
+        docs: :docs,
+        "hex.publish": :docs,
+        "hex.build": :docs,
+        credo: :test
+      }
     ]
   end
+
+  defp extra_applications(:dev),
+    do: [
+      {:wx, :optional},
+      {:runtime_tools, :optional},
+      {:observer, :optional}
+    ]
+
+  defp extra_applications(_), do: []
 
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      mod: {MNDP.Application, []},
+      extra_applications: [:logger] ++ extra_applications(Mix.env())
     ]
+  end
+
+  defp package do
+    [
+      licenses: ["MIT"],
+      links: %{"GitHub" => @source_url}
+    ]
+  end
+
+  defp description do
+    "MikroTik Neighbor Device Discovery"
   end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      # {:dep_from_hexpm, "~> 0.3.0"},
-      # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
+      {:nerves_runtime, "~> 0.13", optional: true, only: [:dev, :test, :prod, :docs]},
+      {:credo, "~> 1.7", only: :test, runtime: false},
+      {:ex_doc, "~> 0.34", only: :docs, runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:vintage_net, "~> 0.13", optional: true}
+    ]
+  end
+
+  defp dialyzer() do
+    [
+      flags: [:missing_return, :extra_return, :unmatched_returns, :error_handling, :underspecs],
+      plt_add_apps: [:iex, :vintage_net, :inets]
+    ]
+  end
+
+  defp docs do
+    [
+      # "CHANGELOG.md"],
+      extras: ["README.md"],
+      main: "readme",
+      source_ref: "v#{@version}",
+      source_url: @source_url,
+      skip_undefined_reference_warnings_on: ["CHANGELOG.md"]
     ]
   end
 end
