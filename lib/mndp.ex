@@ -124,16 +124,28 @@ defmodule MNDP do
     end
   end
 
+  def table_discovered() do
+    MNDP.Listener.list_discovered()
+    |> Enum.map(&print_map/1)
+    |> Owl.Table.new(divide_body_rows: true, sort_columns: fn _, _ -> false end)
+  end
+
   def print_discovered do
-    header = ["IDENTITY\tMAC\t\t\tIPV4\t\tINTERFACE\tUPTIME"]
+    table_discovered()
+    |> Owl.Data.to_chardata()
+    |> IO.puts()
+  end
 
-    mndp =
-      MNDP.Listener.list_discovered()
-      |> Enum.map(fn mndp ->
-        "#{mndp.identity}\t#{print_mac(mndp.mac)}\t#{print_ip(mndp.ip_v4)}\t#{mndp.interface}\t\t#{mndp.uptime}"
-      end)
-
-    (header ++ mndp) |> Enum.join("\n") |> IO.puts()
+  defp print_map(%MNDP{} = mndp) do
+    %{
+      "IDENTITY" => mndp.identity,
+      "MAC" => print_mac(mndp.mac),
+      "IPV4" => print_ip(mndp.ip_v4),
+      "INTERFACE" => mndp.interface,
+      "VERSION" => mndp.version,
+      "UPTIME" => to_string(mndp.uptime),
+      "LAST SEEN" => "#{DateTime.diff(DateTime.utc_now(), mndp.last_seen)}s ago"
+    }
   end
 
   defp print_mac(mac) do

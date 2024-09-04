@@ -7,9 +7,14 @@ Discover devices
 
 ```bash
 > mix discover
-Searching for devices...
-IDENTITY        MAC                     IPV4            INTERFACE       UPTIME
-nerves-2a0c     BE:FE:21:C8:80:A1       172.31.199.73   usb0            1605
+
+Press any key to end
+
+┌───────┬──────┬────────────────┬─────────┬─────────────┬─────────┬───────────┐
+│VERSION│UPTIME│MAC             │LAST SEEN│IPV4         │INTERFACE│IDENTITY   │
+├───────┼──────┼────────────────┼─────────┼─────────────┼─────────┼───────────┤
+│0.1.0  │4396  │6:95:72:B0:80:BB│0s ago   │172.31.199.73│usb0     │nerves-2a0c│
+└───────┴──────┴────────────────┴─────────┴─────────────┴─────────┴───────────┘
 ```
 
 The application is automatically started and listening and broadcasting on all available IPv4 network interfaces. You can restrict the interfaces via config. See `MNDP.Options`. To use it just add the dependency to your project.
