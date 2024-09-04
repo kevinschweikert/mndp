@@ -9,6 +9,7 @@ defmodule MNDP.Application do
 
     children = [
       {Registry, keys: :unique, name: MNDP.Registry, meta: [config: config]},
+      {Registry, keys: :duplicate, name: MNDP.Subscribers},
       {MNDP.Manager, []},
       {MNDP.Listener, []},
       {config.if_monitor, excluded_ifnames: config.excluded_ifnames}

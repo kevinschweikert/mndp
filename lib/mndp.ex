@@ -142,4 +142,9 @@ defmodule MNDP do
 
   defp print_ip(nil), do: "UNKNOWN"
   defp print_ip(ip), do: :inet.ntoa(ip)
+
+  @spec subscribe() :: {:ok, pid()} | {:error, {:already_registered, pid()}}
+  def subscribe() do
+    Registry.register(MNDP.Subscribers, "subscribers", [])
+  end
 end

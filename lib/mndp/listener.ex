@@ -63,6 +63,7 @@ defmodule MNDP.Listener do
          {:ok, mndp} = MNDP.Packet.decode(data),
          mndp <- MNDP.seen_now(mndp) do
       Logger.debug("MNDP seen device #{mndp.identity}")
+      dispatch(mndp)
       {:noreply, update_cache(state, mndp)}
     else
       _ ->
@@ -109,4 +110,10 @@ defmodule MNDP.Listener do
   end
 
   defp schedule_gc, do: Process.send_after(self(), :gc, @gc_interval)
+
+  defp dispatch(%MNDP{} = mndp) do
+    Registry.dispatch(MNDP.Subscribers, "subscribers", fn entries ->
+      for {pid, _} <- entries, do: send(pid, {:mndp, mndp})
+    end)
+  end
 end
