@@ -14,7 +14,17 @@ nerves-2a0c     BE:FE:21:C8:80:A1       172.31.199.73   usb0            1605
 
 The application is automatically started and listening and broadcasting on all available IPv4 network interfaces. You can restrict the interfaces via config. See `MNDP.Options`. To use it just add the dependency to your project.
 
-You can also do decoding/encoding to/from binary:
+```elixir
+def deps do
+  [
+    {:mndp, github: "kevinschweikert/mndp"}
+  ]
+end
+```
+
+To get the last discovered devices you can use `MNDP.Listener.list_discovered/0`.
+
+You can decode and encode from and to a binary directly.
 
 Encoding: 
 
