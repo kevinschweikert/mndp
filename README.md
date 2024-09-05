@@ -53,7 +53,7 @@ iex> MNDP.decode(binary)
 
 - [ ] Sequence numbering
 - [x] Subscribe API
-- [ ] Recognize when iface is down in `MNDP.InetMonitor`
+- [x] Recognize when iface is down in `MNDP.InetMonitor`
 - [ ] Answer discovery requests with correct `MNDP.Server` when received in `MNDP.Listener`
 - [ ] Make everything configurable
 - [x] Add docs

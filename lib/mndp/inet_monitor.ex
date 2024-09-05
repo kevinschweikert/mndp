@@ -52,14 +52,18 @@ defmodule MNDP.InetMonitor do
   end
 
   defp update(state) do
-    get_all_ifnames()
+    ifname_addresses = get_all_ifname_addresses()
+    ifnames = only_ifnames(ifname_addresses)
+
+    ifname_addresses
     |> Enum.reduce(state, fn {ifname, ip_list}, state ->
       CoreMonitor.set_ip_list(state, ifname, ip_list)
     end)
+    |> CoreMonitor.unset_remaining_ifnames(ifnames)
     |> CoreMonitor.flush_todo_list()
   end
 
-  defp get_all_ifnames() do
+  defp get_all_ifname_addresses() do
     case :net.getifaddrs(:inet) do
       {:ok, ifaddrs} ->
         Enum.map(ifaddrs, fn ifaddr -> {to_string(ifaddr.name), ifaddr.addr.addr} end)
@@ -69,5 +73,9 @@ defmodule MNDP.InetMonitor do
       _error ->
         []
     end
+  end
+
+  defp only_ifnames(ifname_addresses) do
+    Enum.map(ifname_addresses, &elem(&1, 0)) |> Enum.uniq()
   end
 end
