@@ -40,18 +40,6 @@ defmodule MNDP.Sender do
     )
   end
 
-  @doc "Stops the running server for a given interface and IP address"
-  @spec stop_server(String.t(), :inet.ip4_address()) :: :ok
-  def stop_server(ifname, address) do
-    Logger.debug("MNDP stopping server for #{ifname}")
-    GenServer.stop(via_tuple({ifname, address}))
-  catch
-    :exit, {:noproc, _} ->
-      # Ignore if the server already stopped. It already exited due to the
-      # network going down.
-      :ok
-  end
-
   @impl GenServer
   def init(state) do
     socket_opts = [
@@ -113,11 +101,6 @@ defmodule MNDP.Sender do
   def handle_info({:udp, _socket, addr, _port, data}, state) do
     Logger.debug("MNDP unexpected message from #{inspect(addr)}: #{data}")
     {:noreply, state}
-  end
-
-  @impl GenServer
-  def terminate(_reason, state) do
-    :gen_udp.close(state.socket)
   end
 
   defp broadcast_discovery(state) do

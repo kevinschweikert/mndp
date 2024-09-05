@@ -16,7 +16,11 @@ defmodule MNDP.Manager do
 
   @spec stop_child(String.t(), :inet.ip4_address()) :: :ok
   def stop_child(ifname, address) do
-    Sender.stop_server(ifname, address)
+    for {pid, _} <- Registry.lookup(MNDP.Registry, {ifname, address}) do
+      DynamicSupervisor.terminate_child(__MODULE__, pid)
+    end
+
+    :ok
   end
 
   @impl DynamicSupervisor
