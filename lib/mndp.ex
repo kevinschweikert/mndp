@@ -1,19 +1,28 @@
 defmodule MNDP do
-  @moduledoc """
-  The Mikrotik Neighbor Discovery Protocol
-  """
+  @external_resource "README.md"
+  @moduledoc @external_resource
+             |> File.read!()
+             |> String.split("<!-- MDOC !-->")
+             |> Enum.fetch!(1)
 
   alias MNDP.Interface
 
+  @typedoc "representation of a hardware MAC address"
+  @type mac() :: [byte()]
+
+  @typedoc "seconds since start"
+  @type uptime() :: non_neg_integer()
+
+  @typedoc "a MNDP packet struct"
   @type t() :: %__MODULE__{
           type: integer(),
           ttl: integer(),
           seq_no: non_neg_integer(),
-          mac: [0..255],
+          mac: mac(),
           identity: String.t(),
           version: String.t(),
           platform: String.t(),
-          uptime: non_neg_integer(),
+          uptime: uptime(),
           software_id: String.t(),
           board: String.t(),
           unpack: :none | nil,
@@ -23,11 +32,12 @@ defmodule MNDP do
           last_seen: DateTime.t()
         }
 
-  @type opts() :: [
+  @typedoc "field overrides for the MNDP struct generation"
+  @type overrides() :: [
           identity: String.t(),
           version: String.t(),
           platform: String.t(),
-          uptime: (-> non_neg_integer()),
+          uptime: (-> uptime()),
           software_id: String.t(),
           board: String.t()
         ]
@@ -50,31 +60,90 @@ defmodule MNDP do
     last_seen: nil
   ]
 
+  # protocol "Type:8,TTL:8,SEQ:16,TLV TYPE:16,TLV LENGTH:16,TLV DATA:64"
+  @doc """
+  Decdes a binary to a `MNDP` struct.
+
+  The structure of a MNDP packet looks like this
+
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |     TYPE      |      TTL      |              SEQ              |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |           TLV TYPE            |          TLV LENGTH           |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      +                           TLV DATA                            +
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+  * TYPE (8 bytes)
+  * TTL (8 bytes)
+  * SEQ (16 bytes)
+  * TLV TYPE (16 bytes)
+  * TLV LENGTH (16 bytes)
+  * TLV DATA (TLV LENGTH)
+
+  > #### Info {: .info}
+  >
+  > The header fields are set like this in RouterOS 6 but changes in RouterOS 7. Currently it is not guaranteed to be correct
+
+  ## Examples
+
+      iex> MNDP.decode(<<_>>)
+      {:ok, %MNDP{}}
+
+      iex> MNDP.decode(<<"unknown">>)
+      {:error, :expected_tlv_format}
+  """
+  @spec decode(binary()) :: {:ok, MNDP.t()} | {:error, atom()}
   defdelegate decode(binary), to: MNDP.Packet
+
+  @spec encode(MNDP.t()) :: binary()
   defdelegate encode(mndp), to: MNDP.Packet
 
-  @spec new!(String.t(), opts()) :: t() | {:error, atom()}
-  def new!(ifname, opts) when is_binary(ifname) do
-    {:ok, interface} = Interface.from_ifname(ifname)
-    new(interface, opts)
-  end
+  @doc """
+  List all the discovered devices withing configured TTL. See `MNDP.Options` for informations about how to modify the default settings
+  """
+  @spec list_discovered() :: [t()]
+  defdelegate list_discovered, to: MNDP.Listener
 
-  @spec new(Interface.t() | String.t(), opts()) :: t() | {:error, atom()}
-  def new(interface_or_ifname, opts \\ [])
+  @doc """
+  Will print the devices from `list_discovered/0` via `IO.puts`
+  """
+  @spec print_discovered() :: :ok
+  defdelegate print_discovered, to: MNDP.Render
 
-  def new(ifname, opts) when is_binary(ifname) do
+  @doc """
+  Creates a new MNDP struct from an interface name or struct.
+
+  ## Examples
+
+      iex> MNDP.new("en0")
+      {:ok, %MNDP{}}
+
+      iex> MNDP.new("unknown interface")
+      {:error, :interface_not_found} 
+      
+  """
+
+  @spec new(Interface.t() | String.t(), overrides()) :: t() | {:error, atom()}
+  def new(interface_or_ifname, overrides \\ [])
+
+  def new(ifname, overrides) when is_binary(ifname) do
     with {:ok, interface} <- Interface.from_ifname(ifname) do
-      new(interface, opts)
+      new(interface, overrides)
     end
   end
 
-  def new(%Interface{} = interface, opts) do
-    identity = Keyword.get(opts, :identity, identity())
-    version = Keyword.get(opts, :version, version())
-    platform = Keyword.get(opts, :platform, platform())
-    uptime = Keyword.get(opts, :uptime, &uptime/0)
-    software_id = Keyword.get(opts, :software_id, software_id())
-    board = Keyword.get(opts, :board, board())
+  def new(%Interface{} = interface, overrides) do
+    identity = Keyword.get(overrides, :identity, identity())
+    version = Keyword.get(overrides, :version, version())
+    platform = Keyword.get(overrides, :platform, platform())
+    uptime = Keyword.get(overrides, :uptime, &uptime/0)
+    software_id = Keyword.get(overrides, :software_id, software_id())
+    board = Keyword.get(overrides, :board, board())
 
     %__MODULE__{
       mac: interface.mac,
@@ -87,6 +156,19 @@ defmodule MNDP do
       interface: interface.ifname,
       ip_v4: interface.ip_v4
     }
+  end
+
+  @doc """
+  Same as `MNDP.new/2` but raises on error
+  """
+  @spec new!(String.t(), overrides()) :: t()
+  def new!(ifname, overrides \\ []) when is_binary(ifname) do
+    with {:ok, interface} <- Interface.from_ifname(ifname),
+         %MNDP{} = mndp <- new(interface, overrides) do
+      mndp
+    else
+      {:error, reason} -> raise RuntimeError, "could not create MNDP packet, error: #{reason}"
+    end
   end
 
   # :inet.gethostname is always sucessful
@@ -110,53 +192,21 @@ defmodule MNDP do
     end
   end
 
-  @spec seen_now(t()) :: t()
-  def seen_now(%__MODULE__{} = mndp) do
-    %MNDP{mndp | last_seen: DateTime.utc_now()}
-  end
+  @doc """
+  Subscribe the current process to new MNDP packets from the listener. It will send a message with the type `{:mndp, MNDP.t()}`
 
-  @spec registered(:inet.ip4_address()) :: [pid()]
-  def registered(ip) do
-    if not is_nil(Process.whereis(MNDP.Registry)) do
-      Registry.select(MNDP.Registry, [{{{:_, ip}, :"$2", :_}, [], [:"$2"]}])
-    else
-      []
-    end
-  end
+  Ususally you do this in a process like a GenServer and the message can be handled like this
 
-  def table_discovered() do
-    MNDP.Listener.list_discovered()
-    |> Enum.map(&print_map/1)
-    |> Owl.Table.new(divide_body_rows: true, sort_columns: fn _, _ -> false end)
-  end
+        def handle_info({:mndp, %MNDP{} = mndp}, state) do
+          IO.inspect(mndp)
+          {:noreply, state}
+        end
 
-  def print_discovered do
-    table_discovered()
-    |> Owl.Data.to_chardata()
-    |> IO.puts()
-  end
-
-  defp print_map(%MNDP{} = mndp) do
-    %{
-      "IDENTITY" => mndp.identity,
-      "MAC" => print_mac(mndp.mac),
-      "IPV4" => print_ip(mndp.ip_v4),
-      "INTERFACE" => mndp.interface,
-      "VERSION" => mndp.version,
-      "UPTIME" => to_string(mndp.uptime),
-      "LAST SEEN" => "#{DateTime.diff(DateTime.utc_now(), mndp.last_seen)}s ago"
-    }
-  end
-
-  defp print_mac(mac) do
-    mac |> Enum.map_join(":", &Integer.to_string(&1, 16))
-  end
-
-  defp print_ip(nil), do: "UNKNOWN"
-  defp print_ip(ip), do: :inet.ntoa(ip)
-
-  @spec subscribe() :: {:ok, pid()} | {:error, {:already_registered, pid()}}
+  If you subscribe from an `IEx` shell you can flush the received messages with `IEx.Helpers.flush/0`. It is automatically imported and can be called with just `flush()`
+  """
+  @spec subscribe() :: :ok
   def subscribe() do
     Registry.register(MNDP.Subscribers, "subscribers", [])
+    :ok
   end
 end

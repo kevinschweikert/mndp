@@ -1,5 +1,15 @@
 defmodule MNDP.Listener do
+  @moduledoc """
+  Listener for broadcasted MNDP packets.
+
+  MNDP packets typically get send to the global broadcast address `255.255.255.255`. To receive all of these broadcasts, the listener binds on the configured port to `0.0.0.0`.
+
+  To get notified when new packets get received, you can use `MNDP.subscribe/0`.
+  """
   use GenServer
+
+  @type port_number() :: non_neg_integer()
+  @type opts() :: [{:port, port_number()}]
 
   @discovery_request <<00, 00, 00, 00>>
   @discovery_request_winbox <<00, 00, 00, 00, 00, 06, 00, 00>>
@@ -8,10 +18,13 @@ defmodule MNDP.Listener do
 
   require Logger
 
+  @doc delegate_to: {MNDP, :list_discovered, 0}
+  @spec list_discovered() :: [MNDP.t()]
   def list_discovered() do
     GenServer.call(__MODULE__, :discovered)
   end
 
+  @spec start_link(opts()) :: GenServer.on_start()
   def start_link(opts) do
     GenServer.start_link(
       __MODULE__,
@@ -59,9 +72,9 @@ defmodule MNDP.Listener do
   end
 
   def handle_info({:udp, _socket, addr, _port, data}, state) do
-    with [] <- MNDP.registered(addr),
+    with [] <- registered(addr),
          {:ok, mndp} = MNDP.Packet.decode(data),
-         mndp <- MNDP.seen_now(mndp) do
+         mndp <- seen_now(mndp) do
       Logger.debug("MNDP seen device #{mndp.identity}")
       dispatch(mndp)
       {:noreply, update_cache(state, mndp)}
@@ -80,6 +93,11 @@ defmodule MNDP.Listener do
   @impl GenServer
   def terminate(_reason, state) do
     :gen_udp.close(state.socket)
+  end
+
+  @spec seen_now(MNDP.t()) :: MNDP.t()
+  defp seen_now(%MNDP{} = mndp) do
+    %MNDP{mndp | last_seen: DateTime.utc_now()}
   end
 
   defp cache_key(%MNDP{mac: mac, identity: identity}) do
@@ -115,5 +133,14 @@ defmodule MNDP.Listener do
     Registry.dispatch(MNDP.Subscribers, "subscribers", fn entries ->
       for {pid, _} <- entries, do: send(pid, {:mndp, mndp})
     end)
+  end
+
+  @spec registered(:inet.ip4_address()) :: [pid()]
+  defp registered(ip) do
+    if not is_nil(Process.whereis(MNDP.Registry)) do
+      Registry.select(MNDP.Registry, [{{{:_, ip}, :"$2", :_}, [], [:"$2"]}])
+    else
+      []
+    end
   end
 end

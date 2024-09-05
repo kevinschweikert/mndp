@@ -1,10 +1,28 @@
 defmodule MNDP.Sender do
+  @moduledoc """
+  Sender to broadcast MNDP packets.
+
+  The `Sender` will be typically started and stopped by the interface monitors (`MNDP.InetMonitor` or `MNDP.VintageNetMonitor`). 
+  It will one process for each IP address for each interface.
+  To exclude interfaces from this automation, see `MNDP.Options`.
+
+  To start and stop a `MNDP.Server` manually the interface name and IP address to bind to is needed
+
+  ## Examples
+
+      iex> MNDP.Server.start_link({"en0", {10, 0, 0, 199}})
+      {:ok, pid}
+
+      iex> MNDP.Server.stop_server("en0", {10, 0, 0, 199})
+      :ok
+  """
   use GenServer
 
   require Logger
 
   @discovery_request <<00, 00, 00, 00>>
 
+  @spec start_link({String.t(), :inet.ip_address()}) :: GenServer.on_start()
   def start_link({ifname, address}) do
     {:ok, config} = Registry.meta(MNDP.Registry, :config)
 
@@ -22,6 +40,7 @@ defmodule MNDP.Sender do
     )
   end
 
+  @doc "Stops the running server for a given interface and IP address"
   @spec stop_server(String.t(), :inet.ip4_address()) :: :ok
   def stop_server(ifname, address) do
     Logger.debug("MNDP stopping server for #{ifname}")

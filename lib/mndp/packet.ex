@@ -1,14 +1,11 @@
 defmodule MNDP.Packet do
   @moduledoc """
-  functions for decoding and encoding the raw packet binary
+  Functions for decoding and encoding the raw packet binary
   """
 
   @discovery_request <<0, 0, 0, 0>>
 
-  @doc """
-  decodes a binary into a `MNDP` struct
-  """
-
+  @doc delegate_to: {MNDP, :decode, 1}
   @spec decode(binary()) :: {:ok, MNDP.t()} | {:error, atom()}
   def decode(@discovery_request), do: {:error, :discovery_trigger_packet}
 
@@ -26,10 +23,7 @@ defmodule MNDP.Packet do
 
   def decode(_), do: {:error, :unknown_header}
 
-  @doc """
-  encodes a `MNDP` struct into a binary
-  """
-
+  @doc delegate_to: {MNDP, :encode, 1}
   @spec encode(MNDP.t()) :: binary()
   def encode(%MNDP{} = mndp) do
     tlv =
@@ -54,6 +48,8 @@ defmodule MNDP.Packet do
         {:error, :expected_tlv_format}
     end
   end
+
+  defp decode_tlv(_, _), do: {:error, :expected_tlv_format}
 
   defp parse_tlv({1, _length, data}), do: {:mac, parse_mac(data)}
   defp parse_tlv({5, _length, data}), do: {:identity, data}

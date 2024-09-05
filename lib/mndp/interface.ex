@@ -2,7 +2,7 @@ defmodule MNDP.Interface do
   @type t() :: %__MODULE__{
           ip_v4: :inet.ip4_address(),
           broadcast: :inet.ip4_address() | nil,
-          mac: [0..255] | nil
+          mac: MNDP.mac() | nil
         }
   defstruct ifname: nil, ip_v4: nil, broadcast: nil, mac: nil
 

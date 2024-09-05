@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Discover do
       state: :init,
       render: fn
         :init -> "Scanning for devices..."
-        _ -> MNDP.table_discovered()
+        _ -> MNDP.list_discovered() |> MNDP.Render.to_owl_table()
       end
     )
 

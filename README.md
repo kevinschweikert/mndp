@@ -1,5 +1,7 @@
 # MNDP - MikroTik Neighbor Discovery Protocol
 
+<!-- MDOC !-->
+
 An Elixir implementation for the [MikroTik Neighbor Discovery Protocol](https://help.mikrotik.com/docs/display/ROS/Neighbor+discovery).
 
 
@@ -45,6 +47,7 @@ iex> MNDP.decode(binary)
 {:ok, %MNDP{}}
 ```
 
+<!-- MDOC !-->
 
 ## Todo / Ideas
 
@@ -53,7 +56,7 @@ iex> MNDP.decode(binary)
 - [ ] Recognize when iface is down in `MNDP.InetMonitor`
 - [ ] Answer discovery requests with correct `MNDP.Server` when received in `MNDP.Listener`
 - [ ] Make everything configurable
-- [ ] Add docs
+- [x] Add docs
 - [ ] Add tests
 - [ ] Better Logging
 - [ ] Check licence
