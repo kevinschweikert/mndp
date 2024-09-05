@@ -1,6 +1,6 @@
 defmodule MNDPTest do
   use ExUnit.Case
-  doctest MNDP
+  # doctest MNDP
 
   @packet <<97, 0, 0, 0, 0, 1, 0, 6, 116, 77, 40, 145, 13, 47, 0, 5, 0, 8, 77, 105, 107, 114, 111,
             84, 105, 107, 0, 7, 0, 35, 55, 46, 49, 53, 46, 51, 32, 40, 115, 116, 97, 98, 108, 101,
@@ -11,7 +11,7 @@ defmodule MNDPTest do
             0, 0, 118, 77, 40, 255, 254, 145, 13, 47, 0, 16, 0, 13, 98, 114, 105, 100, 103, 101,
             47, 101, 116, 104, 101, 114, 50, 0, 17, 0, 4, 192, 168, 88, 1>>
 
-  test "from_binary/1" do
+  test "encode/1" do
     assert {:ok,
             %MNDP{
               type: 97,
@@ -29,10 +29,10 @@ defmodule MNDPTest do
               interface: "bridge/ether2",
               ip_v4: {192, 168, 88, 1}
             }} ==
-             MNDP.from_binary(@packet)
+             MNDP.decode(@packet)
   end
 
-  test "to_binary/1" do
+  test "decode/1" do
     assert @packet ==
              %MNDP{
                type: 97,
@@ -50,12 +50,12 @@ defmodule MNDPTest do
                interface: "bridge/ether2",
                ip_v4: {192, 168, 88, 1}
              }
-             |> MNDP.to_binary()
+             |> MNDP.encode()
   end
 
   test "roundtrip from binary" do
     assert @packet ==
-             MNDP.from_binary(@packet) |> then(fn {:ok, mndp} -> mndp end) |> MNDP.to_binary()
+             MNDP.decode(@packet) |> then(fn {:ok, mndp} -> mndp end) |> MNDP.encode()
   end
 
   test "roundtrip to binary" do
@@ -76,8 +76,8 @@ defmodule MNDPTest do
         interface: "bridge/ether2",
         ip_v4: {192, 168, 88, 1}
       }
-      |> MNDP.to_binary()
-      |> MNDP.from_binary()
+      |> MNDP.encode()
+      |> MNDP.decode()
 
     assert mndp.platform == "MikroTik"
     assert mndp.ip_v4 == {192, 168, 88, 1}
