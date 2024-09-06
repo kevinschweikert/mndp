@@ -31,7 +31,8 @@ defmodule MNDP.Listener do
       %{
         port: Keyword.get(opts, :port, 5678),
         socket: nil,
-        cache: %{}
+        cache: %{},
+        skip_socket: Application.get_env(:mndp, :skip_socket)
       },
       name: __MODULE__
     )
@@ -41,20 +42,24 @@ defmodule MNDP.Listener do
   def init(state) do
     socket_opts = [:binary, active: true, ip: {0, 0, 0, 0}, reuseaddr: true, reuseport: true]
 
-    case :gen_udp.open(state.port, socket_opts) do
-      {:ok, socket} ->
-        schedule_gc()
-        {:ok, %{state | socket: socket}}
+    unless state.skip_socket do
+      case :gen_udp.open(state.port, socket_opts) do
+        {:ok, socket} ->
+          schedule_gc()
+          {:ok, %{state | socket: socket}}
 
-      {:error, :einval} ->
-        Logger.error("MNDP can't open port #{state.port}. Check permissions")
+        {:error, :einval} ->
+          Logger.error("MNDP can't open port #{state.port}. Check permissions")
 
-        {:stop, :check_port}
+          {:stop, :check_port}
 
-      {:error, other} ->
-        Logger.error("MNDP can't open socket with port #{state.port}. Error: #{other}")
+        {:error, other} ->
+          Logger.error("MNDP can't open socket with port #{state.port}. Error: #{other}")
 
-        {:stop, other}
+          {:stop, other}
+      end
+    else
+      {:ok, state}
     end
   end
 

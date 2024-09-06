@@ -34,7 +34,8 @@ defmodule MNDP.Sender do
         port: config.port,
         identity: config.identity,
         interval: config.interval,
-        socket: nil
+        socket: nil,
+        skip_socket: Application.get_env(:mndp, :skip_socket)
       },
       name: via_tuple({ifname, address})
     )
@@ -56,30 +57,29 @@ defmodule MNDP.Sender do
         {:unix, :linux} ->
           socket_opts ++ [bind_to_device: state.ifname]
 
-        {:unix, :darwin} ->
-          # TODO!
-          socket_opts
-
-        {:unix, _} ->
-          # TODO!
+        _ ->
           socket_opts
       end
 
-    case :gen_udp.open(state.port, socket_opts) do
-      {:ok, socket} ->
-        {:ok, %{state | socket: socket}, {:continue, :discovery_request}}
+    unless state.skip_socket do
+      case :gen_udp.open(state.port, socket_opts) do
+        {:ok, socket} ->
+          {:ok, %{state | socket: socket}, {:continue, :discovery_request}}
 
-      {:error, :einval} ->
-        Logger.error("MNDP can't open port #{state.port} on #{state.ifname}. Check permissions")
+        {:error, :einval} ->
+          Logger.error("MNDP can't open port #{state.port} on #{state.ifname}. Check permissions")
 
-        {:stop, :check_port_and_ifnames}
+          {:stop, :check_port_and_ifnames}
 
-      {:error, other} ->
-        Logger.error(
-          "MNDP can't open socket with port #{state.port} on #{state.ifname}. Error: #{other}"
-        )
+        {:error, other} ->
+          Logger.error(
+            "MNDP can't open socket with port #{state.port} on #{state.ifname}. Error: #{other}"
+          )
 
-        {:stop, other}
+          {:stop, other}
+      end
+    else
+      {:ok, state}
     end
   end
 
@@ -118,7 +118,9 @@ defmodule MNDP.Sender do
   end
 
   defp send_packet(payload, state) do
-    :gen_udp.send(state.socket, {255, 255, 255, 255}, state.port, payload)
+    if state.socket do
+      :gen_udp.send(state.socket, {255, 255, 255, 255}, state.port, payload)
+    end
   end
 
   defp via_tuple(name) do

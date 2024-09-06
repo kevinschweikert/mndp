@@ -18,6 +18,6 @@ config :vintage_net,
 if Mix.env() == :test do
   # Allow Responders to still be created, but skip starting gen_udp
   # so tests can pass
-  # config :mndp,
-  #   skip_udp: true
+  config :mndp,
+    skip_socket: true
 end
