@@ -67,7 +67,9 @@ defmodule Mndp.MixProject do
   defp dialyzer() do
     [
       flags: [:missing_return, :extra_return, :unmatched_returns, :error_handling, :underspecs],
-      plt_add_apps: [:iex, :vintage_net, :inets]
+      plt_add_apps: [:iex, :vintage_net, :mix],
+      plt_file: {:no_warn, "priv/plts/project.plt"},
+      list_unused_filters: true
     ]
   end
 

@@ -51,16 +51,17 @@ iex> MNDP.decode(binary)
 
 ## Todo / Ideas
 
+- [ ] Fix ignored warnings in `.dialyzer_ignore.exs`
 - [ ] Sequence numbering
-- [x] Subscribe API
-- [x] Recognize when iface is down in `MNDP.InetMonitor`
 - [ ] Answer discovery requests with correct `MNDP.Server` when received in `MNDP.Listener`
 - [ ] Make everything configurable
-- [x] Add docs
 - [ ] Add tests
 - [ ] Better Logging
 - [ ] Check licence
 - [ ] With 0.1.0 add CHANGELOG
+- [x] Subscribe API
+- [x] Recognize when iface is down in `MNDP.InetMonitor`
+- [x] Add docs
 
 ## Installation
 

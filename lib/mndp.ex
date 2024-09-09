@@ -97,10 +97,18 @@ defmodule MNDP do
       iex> MNDP.decode(<<"unknown">>)
       {:error, :expected_tlv_format}
   """
-  @spec decode(binary()) :: {:ok, MNDP.t()} | {:error, atom()}
+  @spec decode(binary()) :: {:ok, t()} | {:error, atom()}
   defdelegate decode(binary), to: MNDP.Packet
 
-  @spec encode(MNDP.t()) :: binary()
+  @doc """
+  Ecnodes an `MNDP` stuct to a binary
+
+  ## Examples
+
+      iex> MNDP.encode(%MNDP{})
+      <<...>>
+  """
+  @spec encode(t()) :: binary()
   defdelegate encode(mndp), to: MNDP.Packet
 
   @doc """
