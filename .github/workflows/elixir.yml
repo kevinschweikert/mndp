@@ -22,21 +22,30 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
     - name: Install libmnl package for nerves_uevent
       run: |
         sudo apt-get update
         sudo apt-get install libmnl-dev
+
     - name: Set up Elixir
       uses: erlef/setup-beam@61e01a43a562a89bfc54c7f9a378ff67b03e4a21 # v1.16.0
       with:
         elixir-version: '1.15.2' # [Required] Define the Elixir version
         otp-version: '26.0'      # [Required] Define the Erlang/OTP version
+
     - name: Restore dependencies cache
       uses: actions/cache@v3
       with:
         path: deps
         key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
         restore-keys: ${{ runner.os }}-mix-
+
+    - name: install dependencies
+      run: mix deps.get
+
+    - name: Check compile
+      run: mix compile --warnings-as-errors
 
     - name: Restore PLT cache
       id: plt_cache
@@ -65,11 +74,11 @@ jobs:
         path: |
           priv/plts
 
-    - name: Install dependencies
-      run: mix deps.get
     - name: Run tests
       run: mix test
+
     - name: Run credo
       run: mix credo --only warning
+
     - name: Run dialyzer
       run: mix dialyzer --format github
