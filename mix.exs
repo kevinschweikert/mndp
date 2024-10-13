@@ -60,7 +60,7 @@ defmodule Mndp.MixProject do
       {:ex_doc, "~> 0.34", only: :docs, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:vintage_net, "~> 0.13", optional: true},
-      {:owl, "~> 0.12.0", optional: true}
+      {:owl, "~> 0.12.0"}
     ]
   end
 
