@@ -1,4 +1,4 @@
-defmodule Mix.Tasks.Discover do
+defmodule Mix.Tasks.Mndp.Discover do
   @moduledoc "Discovers Devices with MNDP"
   @shortdoc "Disover MNDP devices"
 

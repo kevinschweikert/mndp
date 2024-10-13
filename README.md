@@ -8,7 +8,7 @@ An Elixir implementation for the [MikroTik Neighbor Discovery Protocol](https://
 Discover devices
 
 ```bash
-> mix discover
+> mix mndp.discover
 
 Press any key to end
 
