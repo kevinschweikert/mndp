@@ -75,8 +75,7 @@ defmodule Mndp.MixProject do
 
   defp docs do
     [
-      # "CHANGELOG.md"],
-      extras: ["README.md"],
+      extras: ["CHANGELOG.md", "README.md"],
       main: "readme",
       source_ref: "v#{@version}",
       source_url: @source_url,
