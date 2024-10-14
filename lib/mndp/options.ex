@@ -23,7 +23,7 @@ defmodule MNDP.Options do
 
   ```elixir
   config :mndp,
-    identitiy: :hostname,
+    identity: :hostname,
     interval: :timer.seconds(30),
     ttl: :timer.minutes(1),
     port: 5678,
