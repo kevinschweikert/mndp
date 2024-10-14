@@ -62,7 +62,7 @@ defmodule MNDP.Options do
 
   @typedoc false
   @type t :: %__MODULE__{
-          identity: String.t(),
+          identity: String.t() | :hostname,
           interval: pos_integer(),
           ttl: pos_integer(),
           port: 0..65_536,
