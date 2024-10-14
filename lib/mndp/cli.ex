@@ -32,9 +32,8 @@ defmodule MNDP.CLI do
 
   def run() do
     Logger.configure(level: :info)
+    Application.ensure_all_started(:mndp)
     Application.ensure_all_started(:owl)
-    Registry.start_link(keys: :duplicate, name: MNDP.Subscribers)
-    MNDP.Listener.start_link([])
 
     IO.puts("""
 
