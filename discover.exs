@@ -9,5 +9,4 @@ Mix.install([
   {:owl, "~> 0.12.0"}
 ])
 
-Application.ensure_all_started(:owl)
 MNDP.CLI.run()
