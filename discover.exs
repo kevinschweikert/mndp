@@ -5,7 +5,7 @@ Mix.start()
 Mix.target(:host)
 
 Mix.install([
-  {:mndp, github: "kevinschweikert/mndp", start_applications: false},
+  {:mndp, "~> 0.1.0", start_applications: false},
   {:owl, "~> 0.11.0"}
 ])
 

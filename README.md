@@ -24,7 +24,7 @@ The application is automatically started and listening and broadcasting on all a
 ```elixir
 def deps do
   [
-    {:mndp, github: "kevinschweikert/mndp"}
+    {:mndp, "~> 0.1.0"}
   ]
 end
 ```
