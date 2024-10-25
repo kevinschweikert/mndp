@@ -120,8 +120,8 @@ defmodule MNDP do
   @doc """
   Will print the devices from `list_discovered/0` via `IO.puts`
   """
-  @spec print_discovered() :: :ok
-  defdelegate print_discovered, to: MNDP.Render
+  @spec print_discovered(nil | MNDP.Render.t()) :: MNDP.Render.t()
+  defdelegate print_discovered(module \\ %MNDP.Render{}), to: MNDP.Render
 
   @doc """
   Creates a new MNDP struct from an interface name or struct.
