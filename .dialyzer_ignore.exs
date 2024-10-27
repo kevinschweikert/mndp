@@ -10,5 +10,6 @@
   {"lib/mndp/manager.ex", "The expression produces multiple types, but none are matched."},
   {"lib/mndp/sender.ex", "The expression produces multiple types, but none are matched."},
   {"lib/mndp/sender.ex",
-   "The pattern can never match the type {:error, :interface_not_found | :ip_v4_not_found}."}
+   "The pattern can never match the type {:error, :interface_not_found | :ip_v4_not_found}."},
+  {"lib/mndp/render.ex", :unmatched_return}
 ]

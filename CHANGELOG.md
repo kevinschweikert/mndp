@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] 
 
+### Changed
+
+- Removed `owl` dependency
+- `MNDP.print_discovered/1` now takes an optional state struct
+
 ## [0.1.2] - 2024-10-15
 
 ### Changed

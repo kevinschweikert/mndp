@@ -59,8 +59,7 @@ defmodule Mndp.MixProject do
       {:credo, "~> 1.7", only: :test, runtime: false},
       {:ex_doc, "~> 0.34", only: :docs, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:vintage_net, "~> 0.13", optional: true},
-      {:owl, "~> 0.12.0"}
+      {:vintage_net, "~> 0.13", optional: true}
     ]
   end
 

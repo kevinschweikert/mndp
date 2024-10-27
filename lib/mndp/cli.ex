@@ -7,33 +7,42 @@ defmodule MNDP.CLI do
 
   @impl GenServer
   def init(:ok) do
-    Owl.LiveScreen.add_block(:discovered,
-      state: :init,
-      render: fn
-        :init -> "Scanning for devices..."
-        :update -> MNDP.list_discovered() |> MNDP.Render.to_owl_table()
-      end
-    )
-
-    {:ok, [], {:continue, :subscribe}}
+    {:ok, %{render_state: nil, timer: nil}, {:continue, :subscribe}}
   end
 
   @impl GenServer
   def handle_continue(:subscribe, state) do
     MNDP.subscribe()
+    state = print_devices(state)
     {:noreply, state}
   end
 
   @impl GenServer
-  def handle_info({:mndp, _mndp}, socket) do
-    Owl.LiveScreen.update(:discovered, :update)
-    {:noreply, socket}
+  def handle_info({:mndp, _mndp}, state) do
+    Process.cancel_timer(state.timer)
+    state = print_devices(state)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(:refresh, state) do
+    state = print_devices(state)
+    {:noreply, state}
+  end
+
+  defp print_devices(state) do
+    render_state = MNDP.print_discovered(state.render_state)
+    timer = schedule_refresh()
+    %{state | render_state: render_state, timer: timer}
+  end
+
+  defp schedule_refresh do
+    Process.send_after(self(), :refresh, :timer.seconds(1))
   end
 
   def run() do
     Logger.configure(level: :info)
     Application.ensure_all_started(:mndp)
-    Application.ensure_all_started(:owl)
 
     IO.puts("""
 
