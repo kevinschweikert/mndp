@@ -56,10 +56,6 @@ iex> MNDP.decode(binary)
 - [ ] Add tests
 - [ ] Better Logging
 - [ ] Check licence
-- [ ] With 0.1.0 add CHANGELOG
-- [x] Subscribe API
-- [x] Recognize when iface is down in `MNDP.InetMonitor`
-- [x] Add docs
 
 ## Installation
 
