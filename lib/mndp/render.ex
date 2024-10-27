@@ -9,7 +9,7 @@ defmodule MNDP.Render do
         }
 
   # TODO: keep track of terminal width and redraw header and divider when changed
-  defstruct printed_rows: 0, first_run: true
+  defstruct printed_rows: [], first_run: true
 
   @mac_width String.length("1A:2B:3C:4D:5E:6F")
   @ip_width String.length("111.222.333.444")
