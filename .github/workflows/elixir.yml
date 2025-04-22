@@ -7,96 +7,101 @@ name: Elixir CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 permissions:
   contents: read
 
 jobs:
   build:
-
     name: Build and test
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - elixir_version: '1.18'
-            otp_version: '27.2'
+          - elixir_version: "1.18"
+            otp_version: "27.2"
             lint: true
-          - elixir_version: '1.17'
-            otp_version: '27.0'
-          - elixir_version: '1.16'
-            otp_version: '26.2.5'
-          - elixir_version: '1.15'
-            otp_version: '25.3.2.12'
+          - elixir_version: "1.17"
+            otp_version: "27.0"
+          - elixir_version: "1.16"
+            otp_version: "26.2.5"
+          - elixir_version: "1.15"
+            otp_version: "25.3.2.12"
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install libmnl package for nerves_uevent
-      run: |
-        sudo apt-get update
-        sudo apt-get install libmnl-dev
+      - name: Install libmnl package for nerves_uevent
+        run: |
+          sudo apt-get update
+          sudo apt-get install libmnl-dev
 
-    - name: Set up Elixir
-      uses: erlef/setup-beam@v1
-      with:
-        elixir-version: ${{ matrix.elixir_version }}
-        otp-version: ${{ matrix.otp_version }}
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ matrix.elixir_version }}
+          otp-version: ${{ matrix.otp_version }}
 
-    - name: Restore dependencies cache
-      uses: actions/cache@v3
-      with:
-        path: deps
-        key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
-        restore-keys: ${{ runner.os }}-mix-
+      - name: Restore dependencies cache
+        uses: actions/cache@v3
+        with:
+          path: deps
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
 
-    - name: install dependencies
-      run: mix deps.get --check-locked
+      - name: install dependencies
+        run: mix deps.get --check-locked
 
-    - name: Check compile
-      run: mix compile --warnings-as-errors
+      - name: Check compile
+        run: mix compile --warnings-as-errors
 
-    - name: Restore PLT cache
-      id: plt_cache
-      uses: actions/cache/restore@v3
-      with:
-        key: |
-          plt-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('**/mix.lock') }}
-        restore-keys: |
-          plt-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-
-        path: |
-          priv/plts
+      - name: Restore PLT cache
+        id: plt_cache
+        uses: actions/cache/restore@v3
+        with:
+          key: |
+            plt-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            plt-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-
+          path: |
+            priv/plts
 
-    - name: Create PLTs
-      if: steps.plt_cache.outputs.cache-hit != 'true'
-      run: mix dialyzer --plt
+      - name: Create PLTs
+        if: steps.plt_cache.outputs.cache-hit != 'true'
+        run: mix dialyzer --plt
 
-      # By default, the GitHub Cache action will only save the cache if all steps in the job succeed,
-      # so we separate the cache restore and save steps in case running dialyzer fails.
-    - name: Save PLT cache
-      id: plt_cache_save
-      uses: actions/cache/save@v3
-      if: steps.plt_cache.outputs.cache-hit != 'true'
-      with:
-        key: |
-          plt-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('**/mix.lock') }}
-        path: |
-          priv/plts
+        # By default, the GitHub Cache action will only save the cache if all steps in the job succeed,
+        # so we separate the cache restore and save steps in case running dialyzer fails.
+      - name: Save PLT cache
+        id: plt_cache_save
+        uses: actions/cache/save@v3
+        if: steps.plt_cache.outputs.cache-hit != 'true'
+        with:
+          key: |
+            plt-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('**/mix.lock') }}
+          path: |
+            priv/plts
 
-    - run: mix format --check-formatted
-      if: ${{ matrix.lint }}
+      - run: mix format --check-formatted
+        if: ${{ matrix.lint }}
 
-    - name: Run credo
-      run: mix credo --only warning
-      if: ${{ matrix.lint }}
+      - name: Run credo
+        run: mix credo --only warning
+        if: ${{ matrix.lint }}
 
-    - name: Run dialyzer
-      run: mix dialyzer --format github
-      if: ${{ matrix.lint }}
+      - name: Run dialyzer
+        run: mix dialyzer --format github
+        if: ${{ matrix.lint }}
 
-    - name: Run tests
-      run: mix test
+      - name: Run tests
+        run: mix test
+
+  # report_mix_deps:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: erlef/mix-dependency-submission@v1
